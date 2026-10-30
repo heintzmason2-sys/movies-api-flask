@@ -64,21 +64,68 @@
     return { status: res.status, data };
   }
 
-  const card = m => `<div class="card">
+  
+const card = m => `<div class="card">
     <h3>${esc(m.title)}</h3>
     <div class="meta">${esc(m.director)} · ${m.year}</div>
     <span class="badge ${m.watched ? "seen" : ""}">${m.watched ? "watched" : "unwatched"}</span>
+
     <div class="row">
       <button onclick="startEdit(${m.id})">Edit</button>
       <button class="del" onclick="del(${m.id})">Delete</button>
     </div>
+
+    <div class="feedback">
+      <h4>Leave Feedback</h4>
+
+      <textarea placeholder="Write a comment..."></textarea>
+
+      <div class="row">
+        <button data-thumb="up" data-movie-id="${m.id}">👍</button>
+        <button data-thumb="down" data-movie-id="${m.id}">👎</button>
+      </div>
+
+      <button data-action="comment" data-movie-id="${m.id}">
+        Post Comment
+      </button>
+
+      <div class="feedback-list">
+        ${(m.feedback || []).map(f => `
+          <p>${f.thumb === "up" ? "👍" : f.thumb === "down" ? "👎" : "💬"} ${esc(f.comment || "")}</p>
+        `).join("")}
+      </div>
+    </div>
   </div>`;
+
 
   async function load() {
     const { data } = await api("GET", "/movies");
     MOVIES = data || [];
     $("#list").innerHTML = MOVIES.length ? MOVIES.map(card).join("") : '<p class="meta">No movies yet.</p>';
   }
+
+  $("#list").addEventListener("click", async e => {
+    const button = e.target;
+    if(button.hasAttribute("data-thumb")){
+      const thumb = button.dataset.thumb;
+      const movieId = button.dataset.movieId;
+      const movieCard = button.closest(".card");
+      const commentInput = movieCard.querySelector("textarea");
+      const comment = commentInput.value;
+      const { status, data } = await api(
+        "POST",
+        `/movies/${movieId}/feedback`,
+        {
+          thumb: thumb,
+          comment: comment
+        }
+      )
+      if (status === 201){
+        commentInput.value = "";
+        await load();
+      }
+    }
+  })
 
   async function del(id) {
     const { status } = await api("DELETE", `/movies/${id}`);
