@@ -2,7 +2,18 @@
 
 A full-stack movie management application built with Python, Flask, and JavaScript. This project provides a REST API for managing a personal movie collection, including creating, retrieving, updating, and deleting movies, filtering by director, and submitting movie feedback.
 
-The project also includes an interactive frontend that communicates with the Flask backend using JavaScript Fetch API.
+The application also features an interactive frontend that communicates with the Flask backend using JavaScript Fetch API.
+
+## 📸 Screenshots
+
+### Movies Dashboard
+![Movies API Dashboard](screenshots/dash.png)
+
+### Movie Feedback
+![Movie Feedback](screenshots/feedback.png)
+
+### Swagger API Documentation
+![Swagger UI](screenshots/swagger.png)
 
 ## 🚀 Features
 
@@ -13,25 +24,27 @@ The project also includes an interactive frontend that communicates with the Fla
 - Update existing movie information.
 - Delete movies from the collection.
 - Filter movies by director.
+- Track movie duration and watched status.
 
 ### Movie Feedback
 - Submit thumbs-up or thumbs-down reactions.
-- Attach optional comments to movie feedback.
+- Attach optional comments to feedback.
 - Associate feedback with individual movies.
 - Display submitted feedback in the frontend.
 
-**Note:** The backend currently requires a thumbs-up or thumbs-down value when submitting feedback. Standalone comment submission is a planned improvement.
+**Note:** The backend currently requires a thumbs-up or thumbs-down reaction when submitting feedback. Standalone comment submission is a planned improvement.
 
 ### Validation and Error Handling
 - Validate required fields when creating movies.
-- Validate data types.
+- Validate incoming data types.
 - Return appropriate HTTP status codes.
 - Provide structured JSON error responses.
 - Handle requests for movies that do not exist.
 
 ### API Documentation
 - Integrated Swagger documentation using Flasgger.
-- Interactive API documentation available at `/apidocs/`.
+- Interactive API documentation available through Swagger UI.
+- Explore and test API endpoints directly through the browser.
 
 ## 🛠️ Technologies Used
 
@@ -56,7 +69,11 @@ movies-api-flask/
 ├── index.html
 ├── requirements.txt
 ├── README.md
-└── .venv/
+│
+└── screenshots/
+    ├── dash.png
+    ├── feedback.png
+    └── swagger.png
 ```
 
 The `.venv` directory is your local Python virtual environment and should not be committed to GitHub.
@@ -99,13 +116,15 @@ pip install -r requirements.txt
 python3 app.py
 ```
 
-The application runs locally on:
+The application runs locally at:
 
 ```text
 http://127.0.0.1:5000
 ```
 
-The interactive Swagger documentation is available at:
+### Swagger Documentation
+
+Interactive API documentation is available at:
 
 ```text
 http://127.0.0.1:5000/apidocs/
@@ -113,7 +132,7 @@ http://127.0.0.1:5000/apidocs/
 
 ## 📡 API Endpoints
 
-The following endpoints are currently implemented.
+The following endpoints are implemented:
 
 | HTTP Method | Endpoint | Description |
 |---|---|---|
@@ -135,11 +154,11 @@ Request body:
 
 ```json
 {
-    "title": "Interstellar",
-    "director": "Christopher Nolan",
-    "year": 2014,
-    "watched": true,
-    "duration": 169
+  "title": "Interstellar",
+  "director": "Christopher Nolan",
+  "year": 2014,
+  "watched": true,
+  "duration": 169
 }
 ```
 
@@ -165,10 +184,10 @@ Request body:
 
 ```json
 {
-    "title": "Inception",
-    "director": "Christopher Nolan",
-    "year": 2010,
-    "watched": true
+  "title": "Inception",
+  "director": "Christopher Nolan",
+  "year": 2010,
+  "watched": true
 }
 ```
 
@@ -188,8 +207,8 @@ Request body:
 
 ```json
 {
-    "thumb": "up",
-    "comment": "Great movie!"
+  "thumb": "up",
+  "comment": "Great movie!"
 }
 ```
 
@@ -215,45 +234,13 @@ Example:
 
 ```json
 {
-    "error": "not_found",
-    "message": "Movie with id 99 was not found."
+  "error": "not_found",
+  "message": "Movie with id 99 was not found."
 }
 ```
 
-## 🧠 What I Learned
+## 💾 Data Storage
 
-Through this project, I practiced and strengthened my understanding of:
+The application currently stores movie records and feedback in memory using Python data structures.
 
-- Building REST APIs with Flask.
-- Implementing CRUD operations.
-- Working with HTTP methods and status codes.
-- Handling JSON requests and responses.
-- Validating incoming API data.
-- Creating dynamic frontend components with JavaScript.
-- Using Fetch API to communicate with a backend.
-- Implementing event listeners and DOM manipulation.
-- Integrating Swagger documentation.
-- Managing projects with Git and GitHub.
-
-## 🔮 Future Improvements
-
-Planned improvements include:
-
-- Implementing database persistence using SQLite.
-- Supporting standalone comment submissions.
-- Improving frontend feedback functionality.
-- Adding stronger input validation to update operations.
-- Expanding automated API testing.
-- Improving the overall user interface.
-
-## 👨‍💻 Author
-
-**Mason Heintz**
-
-Software Engineering Student | Aspiring Software Developer
-
-GitHub: [heintzmason2-sys](https://github.com/heintzmason2-sys)
-
----
-
-*This project is part of my ongoing software engineering education and portfolio development.*
+**Important:** Data is not persisted between server restarts. Restarting the Flask application resets
