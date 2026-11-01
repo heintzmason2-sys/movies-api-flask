@@ -225,96 +225,181 @@ def create_movie():
 
 @app.route("/movies/<int:movie_id>/feedback", methods=["POST"])
 def add_movie_feedback(movie_id):
-    body = request.get_json()
+        """
+    Submit feedback for a movie
 
-    movie = next((m for m in movies if m["id"] == movie_id), None)
+    ---
+    parameters:
+      - name: movie_id
+        in: path
+        type: integer
+        required: true
+        description: ID of the movie
 
-    if movie is None:
-        return jsonify({
-            "error": "not_found",
-            "message": f"Movie with id {movie_id} was not found."
+      - in: body
+        name: feedback
+        required: true
+        schema:
+          type: object
+          required:
+            - thumb
+          properties:
+            thumb:
+              type: string
+              enum: [up, down]
+            comment:
+              type: string
 
-        }), 404
+    responses:
+      201:
+        description: Feedback submitted successfully
+      400:
+        description: Invalid feedback
+      404:
+        description: Movie not found
+    """
+        body = request.get_json()
 
-    if body is None:
-        return jsonify({
-            "error": "bad_request",
-            "message": "Request body must be valid JSON."
-        }), 400
-    thumb = body.get("thumb")
-    comment = body.get("comment")
+        movie = next((m for m in movies if m["id"] == movie_id), None)
 
-    if thumb is None:
-        return jsonify({
-            "error": "bad_request",
-            "message": "Field 'thumb' is required and must be 'up' or 'down'"
-        }), 400
+        if movie is None:
+            return jsonify({
+                "error": "not_found",
+                "message": f"Movie with id {movie_id} was not found."
+
+            }), 404
+
+        if body is None:
+            return jsonify({
+                "error": "bad_request",
+                "message": "Request body must be valid JSON."
+            }), 400
+        thumb = body.get("thumb")
+        comment = body.get("comment")
+
+        if thumb is None:
+            return jsonify({
+                "error": "bad_request",
+                "message": "Field 'thumb' is required and must be 'up' or 'down'"
+            }), 400
     
-    if thumb not in ["up", "down"]:
-        return jsonify({
-            "error": "bad_request",
-            "message": "Field 'thumb' must be either 'up' or 'down'."
-        }), 400
+        if thumb not in ["up", "down"]:
+            return jsonify({
+                "error": "bad_request",
+                "message": "Field 'thumb' must be either 'up' or 'down'."
+            }), 400
     
-    if comment is not None and not isinstance(comment, str):
-        return jsonify({
-            "error": "bad_request",
-            "message": "Field 'comment' must be a string if provided."
-        }), 400
+        if comment is not None and not isinstance(comment, str):
+            return jsonify({
+                "error": "bad_request",
+                "message": "Field 'comment' must be a string if provided."
+            }), 400
     
-    if "feedback" not in movie:
-        movie["feedback"] = []
+        if "feedback" not in movie:
+            movie["feedback"] = []
 
-    feedback = {
-        "thumb": body.get("thumb"),
-        "comment": body.get("comment")
-    }
+        feedback = {
+            "thumb": body.get("thumb"),
+            "comment": body.get("comment")
+        }
 
-    movie["feedback"].append(feedback)
+        movie["feedback"].append(feedback)
 
-    return jsonify(movie), 201
+        return jsonify(movie), 201
     
 
 
 @app.route("/movies/<int:id>", methods=["PUT"])
 def update_movie(id):
-    body = request.get_json(silent=True) or {}
+        """
+    Update an existing movie
+
+    ---
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+        description: ID of the movie to update
+
+      - in: body
+        name: movie
+        required: true
+        description: Updated movie information
+        schema:
+          type: object
+          properties:
+            title:
+              type: string
+            director:
+              type: string
+            year:
+              type: integer
+            watched:
+              type: boolean
+
+    responses:
+      200:
+        description: Movie updated successfully
+
+      404:
+        description: Movie not found
+    """
+        body = request.get_json(silent=True) or {}
 
     #1. find the exisiting movie with this id
-    movie = next((m for m in movies if m["id"] == id), None)
+        movie = next((m for m in movies if m["id"] == id), None)
 
-    if movie is None:
-        return jsonify({
-            "error": "not_found",
-            "message": f'Movie with id {id} was not found.'
-        }), 404
+        if movie is None:
+            return jsonify({
+                "error": "not_found",
+                "message": f'Movie with id {id} was not found.'
+            }), 404
 
-    movie['title'] = body.get("title")
-    movie['director'] = body.get("director")
-    movie['year'] = body.get("year")
-    movie["watched"] = body.get("watched")
+        movie['title'] = body.get("title")
+        movie['director'] = body.get("director")
+        movie['year'] = body.get("year")
+        movie["watched"] = body.get("watched")
 
-    return jsonify(movie), 200
+        return jsonify(movie), 200
 
 @app.route('/movies/<int:id>', methods=["DELETE"])
 def delete_movie(id):
-    global movies
-    # find the movies
+        """
+    Delete a movie by ID
 
-    movie = next((m for m in movies if m["id"] == id), None)
+    ---
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+        description: ID of the movie to delete
 
-    if movie is None:
-        return jsonify({
-            "error": "not_found",
-            "message": f"Movie with id {id} was not found."
-        }), 404
-    # remove it from the list
+    responses:
+      204:
+        description: Movie successfully deleted
 
-    movies = [m for m in movies if m["id"] != id]
+      404:
+        description: Movie not found
+    """
+        global movies
+        # find the movies
 
-    # successful delete >> no body, just status
+        movie = next((m for m in movies if m["id"] == id), None)
 
-    return "", 204
+        if movie is None:
+            return jsonify({
+                "error": "not_found",
+                "message": f"Movie with id {id} was not found."
+            }), 404
+        # remove it from the list
+
+        movies = [m for m in movies if m["id"] != id]
+
+        # successful delete >> no body, just status
+
+        return "", 204
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)

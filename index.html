@@ -39,6 +39,7 @@
       <input name="title" placeholder="Title">
       <input name="director" placeholder="Director">
       <input name="year" type="number" placeholder="Year">
+      <input name="duration" type="number" placeholder="Duration (min)">
       <label class="chk"><input type="checkbox" name="watched"> watched</label>
       <button type="submit" id="submitBtn">Add movie</button>
       <button type="button" id="cancelBtn" class="ghost" hidden onclick="resetForm()">Cancel</button>
@@ -155,7 +156,13 @@ const card = m => `<div class="card">
     e.preventDefault();
     const f = e.target;
     $("#formErr").textContent = "";
-    const body = { title: f.title.value, director: f.director.value, year: Number(f.year.value), watched: f.watched.checked };
+    const body = {
+      title: f.title.value,
+      director: f.director.value,
+      year: Number(f.year.value),
+      watched: f.watched.checked,
+      duration: Number(f.duration.value)
+    };
     const method = editing ? "PUT" : "POST";
     const path = editing ? `/movies/${editing}` : "/movies";
     const { status, data } = await api(method, path, body);
