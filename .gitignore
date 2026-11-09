@@ -17,3 +17,9 @@ __pycache__/
 
 # Operating system files
 .DS_Store
+
+# Local database and SQL injection practice
+movies.db
+movie.db
+test_db.py
+movie_search.py

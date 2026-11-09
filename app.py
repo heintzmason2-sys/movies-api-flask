@@ -1,9 +1,23 @@
-
-from flask import Flask, jsonify, send_from_directory, request
-from flasgger import Swagger # New 10/26/26
+import sqlite3
+from flask import Flask, jsonify, send_from_directory, request, g
+from flasgger import Swagger
 
 app = Flask(__name__)
-swagger = Swagger(app) # New 10/26/26
+swagger = Swagger(app)
+
+DATABASE = "movies.db"
+
+def get_db():
+    if "db" not in g:
+        g.db = sqlite3.connect(DATABASE)
+    return g.db
+
+@app.teardown_appcontext
+def close_db(exception):
+    db = g.pop("db", None)
+    if db is not None:
+        db.close()
+
 
 
 print("Flask app is starting up...")
@@ -41,6 +55,11 @@ movies = [
 
 next_id = 5
 
+@app.get("/api")
+def api_hello():
+    db = get_db()
+    return jsonify({"message": "Movies API"})
+
 @app.route("/movies", methods=["GET"])
 def list_movies():
     """
@@ -52,12 +71,24 @@ def list_movies():
         200:
             description: A list of movies
     """
+    db = get_db()
+    db.row_factory = sqlite3.Row
+
     director = request.args.get("director")
+
     if director is None:
-        result = movies
+        rows = db.execute(
+            "SELECT id, title, year FROM movies"
+        ).fetchall()
     else:
-        result = [m for m in movies if m["director"] == director]
-    return jsonify(result)
+        # for now, we’ll just filter by director_id as a string param
+        rows = db.execute(
+            "SELECT id, title, year FROM movies WHERE director_id = ?",
+            (director,)
+        ).fetchall()
+
+    movies_list = [dict(row) for row in rows]
+    return jsonify(movies_list)
 
 
 
@@ -69,32 +100,57 @@ def home():
 def get_movie(id):
     """
     Get a single movie by its ID
-
-
     ---
-    parameters:
-       - name: id
-         in: path
-         type: integer
-         required: true
-         description: The ID of the movie
-
-    responses:
-        200:
-           description: A single movie
-        
-        404:
-           description: Movie not found
-
     """
-    movie = next((m for m in movies if m["id"] == id), None)
+    db = get_db()
+    db.row_factory = sqlite3.Row
 
-    if movie is None:
+    row = db.execute(
+        "SELECT id, title, year FROM movies WHERE id = ?",
+        (id,)
+    ).fetchone()
+
+    if row is None:
         return jsonify({
             "error": "not_found",
             "message": f"Movie with id {id} was not found."
-        }),404
+        }), 404
+
+    movie = dict(row)
     return jsonify(movie)
+
+@app.route("/movies/<int:id>/full", methods=["GET"])
+def get_full_movie(id):
+    """
+    Get a movie plus its director info
+    """
+    db = get_db()
+    db.row_factory = sqlite3.Row
+
+    row = db.execute(
+        """
+        SELECT
+            movies.id AS id,
+            movies.title AS title,
+            movies.year AS year,
+            directors.id AS director_id,
+            directors.name AS director_name
+        FROM movies
+        INNER JOIN directors
+            ON movies.director_id = directors.id
+        WHERE movies.id = ?
+        """,
+        (id,)
+    ).fetchone()
+
+    if row is None:
+        return jsonify({
+            "error": "not_found",
+            "message": f"Movie with id {id} was not found."
+        }), 404
+
+    full_movie = dict(row)
+    return jsonify(full_movie)
 
 @app.route("/movies", methods=["POST"])
 def create_movie():
