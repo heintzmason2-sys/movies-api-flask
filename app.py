@@ -22,38 +22,8 @@ def close_db(exception):
 
 print("Flask app is starting up...")
 
-movies = [
-    {
-        "id": 1,
-        "title": "Den of Thieves",
-        "year": 2018,
-        "director": "Christian Gudegast",
-        "watched": True,
-    },
-    {
-        "id": 2,
-        "title": "Inception",
-        "director": "Christopher Nolan",
-        "year": 2010,
-        "watched": True,
-    },
-    {
-        "id": 3,
-        "title": "Dune",
-        "director": "Denis Villaneuve",
-        "year": 2021,
-        "watched": True,
-    },
-    {
-        "id": 4,
-        "title": "The Matrix",
-        "director": "The Wachowskis",
-        "year": 1999,
-        "watched": False,
-    },
-]
 
-next_id = 5
+
 
 @app.get("/api")
 def api_hello():
@@ -154,131 +124,47 @@ def get_full_movie(id):
 
 @app.route("/movies", methods=["POST"])
 def create_movie():
-    """
-    Create a new movie
+    body = request.get_json(silent=True)
+    if body is None or not isinstance(body, dict):
+        return jsonify({
+            "error": "bad_request",
+            "message": "Request body must be valid JSON."
+        }), 400
+    title = body.get("title")
+    director_id = body.get("director_id")
+    year = body.get("year")
+    rating = body.get("rating")
 
-    ---
-    consumes:
-      - application/json
-    parameters:
-      - in: body
-        name: movie
-        required: true
-        description: Movie to create
-        schema:
-          type: object
-          properties:
-            title:
-              type: string
-            director:
-              type: string
-            year:
-              type: integer
-            watched:
-              type: boolean
-            duration:
-              type: integer
-          required:
-            - title
-            - director
-            - year
-            - watched
-            - duration
-
-    responses:
-      201:
-        description: Movie created successfully
-        schema:
-          type: object
-          properties:
-            id:
-             type: integer
-            title:
-              type: string
-            director:
-              type: string
-            year:
-              type: integer
-            watched:
-              type: boolean
-            duration:
-              type: integer
-          required:
-            - id
-            - title
-            - year
-            - watched
-            - duration
-
-      400:
-        description: Validation failed
-        schema:
-          type: object
-          properties:
-            error:
-              type: string
-              example: validation_failed
-            message:
-              type: string
-          required:
-            - error
-            - message
-    """
-    global next_id
-
-    body = request.get_json(silent=True) or {}
-
-    required_fields = ["title", "director", "year", "watched", "duration"]
-
-    for field in required_fields:
-        if field not in body:
-            return jsonify({
-                "error": "validation_failed",
-                "message": f"Missing required field: {field}"
-            }), 400
+    if title is None or director_id is None:
+        return jsonify({
+            "error": "bad_request",
+            "message": "Fields 'title' and 'director_id' are required."
+        }),400
     
-    if not isinstance(body['year'], int):
+    db = get_db()
+    try:
+        cursor = db.execute(
+            "INSERT INTO movies (title, year, rating, director_id) VALUES (?, ?, ?, ?)",
+            (body["title"], body["year"], body["rating"], body["director_id"])
+        )
+        db.commit()
+    except sqlite3.IntegrityError as e:
         return jsonify({
-            "error": "validation_failed",
-            "message": "Field 'year' must be a number."
-        }), 400
-
-    if not isinstance(body["duration"], int):
-        return jsonify({
-            "error": "validation_failed",
-            "message":"Field 'duration' must be a number(minutes)."
-        }), 400
-
-    if not isinstance(body["title"], str):
-        return jsonify({
-            "error": "validation_failed",
-            "message": "Field 'title' must be a string."
-        }), 400
-
-    if not isinstance(body["director"], str):
-        return jsonify({
-            "error": "validation_failed",
-            "message": "Field 'director' must be a string."
-        }), 400
-
-    if not isinstance(body["watched"], bool):
-        return jsonify({
-            "error": "validation_failed",
-            "message": "Field 'watched' must be a boolean."
-        }), 400
-
-    new_movie = {
-        "id": next_id,
-        "title": body.get("title"),
-        "director": body.get("director"),
-        "year": body.get("year"),
-        "watched": body.get("watched"),
-        "duration": body.get("duration")
+            "error": "Movie conflict",
+            "message": str(e),
+        }), 409
+    
+    new_movie ={
+        "id": cursor.lastrowid,
+        "title": title,
+        "year": year,
+        "rating": rating,
+        "director_id": director_id
     }
-    movies.append(new_movie)
-    next_id += 1
     return jsonify(new_movie), 201
+    
 
+    
 @app.route("/movies/<int:movie_id>/feedback", methods=["POST"])
 def add_movie_feedback(movie_id):
         """
@@ -365,97 +251,39 @@ def add_movie_feedback(movie_id):
     
 
 
+
 @app.route("/movies/<int:id>", methods=["PUT"])
 def update_movie(id):
-        """
-    Update an existing movie
-
-    ---
-    parameters:
-      - name: id
-        in: path
-        type: integer
-        required: true
-        description: ID of the movie to update
-
-      - in: body
-        name: movie
-        required: true
-        description: Updated movie information
-        schema:
-          type: object
-          properties:
-            title:
-              type: string
-            director:
-              type: string
-            year:
-              type: integer
-            watched:
-              type: boolean
-
-    responses:
-      200:
-        description: Movie updated successfully
-
-      404:
-        description: Movie not found
-    """
-        body = request.get_json(silent=True) or {}
-
-    #1. find the exisiting movie with this id
-        movie = next((m for m in movies if m["id"] == id), None)
-
-        if movie is None:
-            return jsonify({
-                "error": "not_found",
-                "message": f'Movie with id {id} was not found.'
-            }), 404
-
-        movie['title'] = body.get("title")
-        movie['director'] = body.get("director")
-        movie['year'] = body.get("year")
-        movie["watched"] = body.get("watched")
-
-        return jsonify(movie), 200
+    db = get_db()
+    body = request.get_json(silent=True)
+    if body is None or not isinstance(body,dict):
+        return jsonify({
+            "error": "bad_request",
+            "message": "Request body must be valid JSON."
+        }), 400
+    cursor = db.execute(
+        "UPDATE movies SET title = ?, year = ?, rating = ?, director_id = ? WHERE id = ?",
+        (body.get("title"), body.get("year"), body.get("rating"), body.get("director_id"), id)
+    )
+    db.commit()
+    if cursor.rowcount == 0:
+        return jsonify({
+            "error": "not_found",
+            "message": f"Movie with id {id} was not found."
+        }), 404
+    return "",204
+    
 
 @app.route('/movies/<int:id>', methods=["DELETE"])
 def delete_movie(id):
-        """
-    Delete a movie by ID
-
-    ---
-    parameters:
-      - name: id
-        in: path
-        type: integer
-        required: true
-        description: ID of the movie to delete
-
-    responses:
-      204:
-        description: Movie successfully deleted
-
-      404:
-        description: Movie not found
-    """
-        global movies
-        # find the movies
-
-        movie = next((m for m in movies if m["id"] == id), None)
-
-        if movie is None:
-            return jsonify({
-                "error": "not_found",
-                "message": f"Movie with id {id} was not found."
-            }), 404
-        # remove it from the list
-
-        movies = [m for m in movies if m["id"] != id]
-
-        # successful delete >> no body, just status
-
-        return "", 204
-
+    db = get_db()
+    cursor = db.execute("DELETE FROM movies WHERE id = ?", (id,))
+    db.commit()
+    if cursor.rowcount == 0:
+        return jsonify({
+            "error": "not_found",
+            "message": f"Movie with id {id} was not found."
+        }), 404
+    return "", 204
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
